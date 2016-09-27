@@ -1,27 +1,29 @@
 import re
-import os
-import sys
-
-TOP_50_PASSWORDS = ['123456', 'password', '12345678', 'qwerty', '123456789',
-                     '12345', '1234', '111111', '1234567', 'dragon',
-                     '123123', 'baseball', 'abc123', 'football', 'monkey',
-                     'letmein', '696969', 'shadow', 'master', '666666',
-                     'qwertyuiop', '123321', 'mustang', '1234567890', 'michael',
-                     '654321', 'pussy', 'superman', '1qaz2wsx', '7777777',
-                     'fuckyou', '121212', '000000', 'qazwsx', '123qwe',
-                     'killer', 'trustno1', 'jordan', 'jennifer', 'zxcvbnm',
-                     'asdfgh', 'hunter', 'buster', 'soccer', 'harley',
-                     'batman', 'andrew', 'tigger', 'sunshine', 'iloveyou']
+from urllib.request import Request, urlopen
 
 
-def load_file(file_path):
-    with open(file_path) as text_file:
-        return text_file.read()
+MIN, SMALL, MEDIUM, BIG = (3, 8, 12, 15)
+
+
+def get_blacklist():
+    request = Request(
+        'https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/10_million_password_list_top_1000.txt')
+    with urlopen(request) as response:
+        page = response.read()
+        top_1000 = page.decode('utf-8').split('\n')
+    return top_1000
 
 
 def get_password_strength(password):
     strength = 0
-    if len(password) >= 8:
+    top_100 = top_1000[:100]
+    if not len(password) >= MIN:
+        return 'Minimum password length = 3' 
+    if len(password) >= SMALL:
+        strength += 1
+    if len(password) >= MEDIUM:
+        strength += 1
+    if len(password) >= BIG:
         strength += 1
     if re.search(r'[a-z]', password):
         strength += 1
@@ -31,11 +33,18 @@ def get_password_strength(password):
         strength += 1
     if re.search(r'\W', password):
         strength += 1
-    if password not in TOP_50_PASSWORDS:
+    if password not in top_100:
+        strength += 1
+    if password not in top_1000:
+        strength += 1
+    if any(ch.isupper() for ch in password):
         strength += 1
     return strength
 
+
 if __name__ == '__main__':
+    print('Loading most common passwords...')
+    top_1000 = get_blacklist()
     password = input('Enter password: ')
-    print(get_password_strength(password))
-    
+    pass_strength = get_password_strength(password)
+    print('Complexity of your password is: %s' % pass_strength)
